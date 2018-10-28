@@ -19,6 +19,5 @@ object IffmhGuide extends App {
     Screening(Movie("Fight Club", 20.minutes), DateTime.now +1.days + 30.minutes, Atlantis)
   )
 
-
-  ScreeningGraph.buildGraph(screeningList)
+    val festivalScreenigs = new ScreeningGraph(screeningList)
 }

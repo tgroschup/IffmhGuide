@@ -15,7 +15,7 @@ case class Screening(movie: Movie, time: DateTime, location: Cinema) {
 
     def transit(other: Screening) : Duration = location.transit(other.location)
 
-    def isReachable(other: Screening) : Boolean = (other.start + transit(other)) isAfter end
+    def isReachable(from: Screening) : Boolean = (from.end + transit(from)) isBefore start
 
     override def toString: String = {
         val hoursMinuteFormatter = DateTimeFormat.forPattern("d-HH:mm")
@@ -23,13 +23,13 @@ case class Screening(movie: Movie, time: DateTime, location: Cinema) {
     }
 }
 
-object ScreeningGraph {
-    private var graph: Graph[Screening, DiEdge] = Graph[Screening, DiEdge]()
-
+class ScreeningGraph (screenings: List[Screening]) {
     private val startNode = Screening(Movie("startNode", 0.minutes), DateTime.now, DummyLocation)
     private val endNode = Screening(Movie("endNode", 0.minutes), DateTime.now, DummyLocation)
 
-    def buildGraph(screenings: List[Screening]): Unit = {
+    private val graph: Graph[Screening, DiEdge] = buildGraph(screenings)
+
+    private def buildGraph(screenings: List[Screening]) = {
         val buildingGraph = mutable.Graph[Screening, DiEdge]()
 
         val screeningDays = screenings.map(_.time.getDayOfYear).toSet
@@ -41,22 +41,24 @@ object ScreeningGraph {
             val consecutiveFilms = modifiedFilmList.dropRight(1).zip(modifiedFilmList.tail)
 
             for ((first, follower) <- consecutiveFilms) {
-                buildingGraph += DiEdge(first, follower)
+                val edge = DiEdge(first, follower)
+                println("Adding edge " + edge)
+                buildingGraph += edge
             }
 
             for ((otherCinema, otherFilmList) <- screeningByCinema if cinema != otherCinema) {
                 for (film <- filmlist) {
-                    val reachableFilms = otherFilmList.filter(film.isReachable)
+                    val reachableFilms = otherFilmList.filter(_.isReachable(film))
                     if (reachableFilms.nonEmpty) {
                         val reachableFilm = reachableFilms.minBy(_.time)
+                        println(reachableFilm + " is first in " + reachableFilm.location + " reachable form " + film)
                         buildingGraph += DiEdge(film, reachableFilm)
                     }
                 }
             }
         }
-        graph = buildingGraph
+        buildingGraph
     }
-
 
 
     def toDot : String = {

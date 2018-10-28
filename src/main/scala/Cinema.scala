@@ -16,13 +16,15 @@ sealed abstract class CinemaMa extends Cinema {
         }
 }
 sealed abstract class CinemaHD extends Cinema {
-    override def transit[T <: Cinema](other: T): Duration =
-        other match {
+    override def transit[T <: Cinema](other: T): Duration = {
+        val t = other match {
             case _: CinemaHD => 5.minutes
             case _: CinemaMa => 120.minutes
             case _ => 0.minutes
-
         }
+        //println("transit from " + toString + " to " + other.toString + " is " + t.getMinutes.toString)
+        t
+    }
 }
 case object DummyLocation extends Cinema {
     override def transit[T <: Cinema](other: T) : Duration = 0.minutes
