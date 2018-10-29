@@ -2,8 +2,8 @@ import com.github.nscala_time.time.Imports._
 import org.joda.time.DateTime
 import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.io.dot.{DotRootGraph, _}
-import scalax.collection.mutable
 import scalax.collection.Graph
+import scala.collection.mutable
 
 /**
   * Created by tobi on 12.11.16.
@@ -30,7 +30,7 @@ class ScreeningGraph (screenings: List[Screening]) {
     private val graph: Graph[Screening, DiEdge] = buildGraph(screenings)
 
     private def buildGraph(screenings: List[Screening]) = {
-        val buildingGraph = mutable.Graph[Screening, DiEdge]()
+        val buildingGraph = scalax.collection.mutable.Graph[Screening, DiEdge]()
 
         val screeningDays = screenings.map(_.time.getDayOfYear).toSet
 
@@ -41,9 +41,7 @@ class ScreeningGraph (screenings: List[Screening]) {
             val consecutiveFilms = modifiedFilmList.dropRight(1).zip(modifiedFilmList.tail)
 
             for ((first, follower) <- consecutiveFilms) {
-                val edge = DiEdge(first, follower)
-                println("Adding edge " + edge)
-                buildingGraph += edge
+                buildingGraph += DiEdge(first, follower)
             }
 
             for ((otherCinema, otherFilmList) <- screeningByCinema if cinema != otherCinema) {
@@ -51,7 +49,6 @@ class ScreeningGraph (screenings: List[Screening]) {
                     val reachableFilms = otherFilmList.filter(_.isReachable(film))
                     if (reachableFilms.nonEmpty) {
                         val reachableFilm = reachableFilms.minBy(_.time)
-                        println(reachableFilm + " is first in " + reachableFilm.location + " reachable form " + film)
                         buildingGraph += DiEdge(film, reachableFilm)
                     }
                 }
@@ -70,5 +67,53 @@ class ScreeningGraph (screenings: List[Screening]) {
             }
 
         graph.toDot(dotRoot, edgeTransformer)
+    }
+
+    private def modDijkstra() : List[Screening] = {
+        val distance = mutable.Map[Screening, Int]()
+        val pred = mutable.Map[Screening, Option[Screening]]()
+        val Q: mutable.Set[Screening] = mutable.Set(graph.nodes).flatten
+        for (node <- Q) {
+            distance(node) = 1
+            pred(node) = None
+        }
+        distance(startNode) = 0
+
+        def moviesInPath(path: Map[Screening, Option[Screening]]) : Set[Movie] = {
+            path.keys.map(_.movie).toSet
+        }
+
+        def update_dist(u: Screening, v: Screening) : Unit = {
+            val weight : Int = if(moviesInPath(pred.toMap).contains(v.movie)) 1 else 0
+            val alternative = distance(u) - weight  //distance between two screenings is always 1 in this implementation
+            if (alternative < distance(v)) {
+                distance(v) = alternative
+                pred(v) = Some(u)
+             }
+        }
+
+        while (Q.nonEmpty) {
+            val u = distance.filter(e => Q.contains(e._1)).toList.minBy(_._2)._1
+            Q.remove(u) //TODO: possible speedup: stop here when end is reached!
+            for(v <- graph.get(u).outNeighbors if Q.contains(v)) {
+                update_dist(u, v)
+            }
+        }
+
+        val path : mutable.MutableList[Screening] = mutable.MutableList()
+        var u = endNode
+
+        while(pred(u).isDefined) {
+            path += u
+            u = pred(u).get
+        }
+
+        path.tail.reverse.toList
+    }
+
+    def longestPath() : List[Screening] = {
+        //Idea: Use shortest path, edge weight is -1 if edge end node is in path, 0 otherwise
+        //resulting path should contain the most screenings
+        modDijkstra()
     }
 }

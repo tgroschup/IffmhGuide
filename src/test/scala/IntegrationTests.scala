@@ -16,7 +16,8 @@ class IntegrationTests extends FunSuite {
         val screeningList = List[Screening](Screening(dogDays, start + 17.hours, Kino1))
         val festivalScreenings = new ScreeningGraph(screeningList)
 
-        print(festivalScreenings.toDot)
+        println(festivalScreenings.toDot)
+        println(festivalScreenings.longestPath())
     }
 
     test("build a graph") {
@@ -45,7 +46,9 @@ class IntegrationTests extends FunSuite {
 
         val festivalScreenings = new ScreeningGraph(screeningList)
 
-        print(festivalScreenings.toDot)
+        println(festivalScreenings.toDot)
+
+        println(festivalScreenings.longestPath())
     }
 
 }
