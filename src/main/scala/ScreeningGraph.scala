@@ -80,11 +80,11 @@ class ScreeningGraph (screenings: List[Screening]) {
         distance(startNode) = 0
 
         def moviesInPath(path: Map[Screening, Option[Screening]]) : Set[Movie] = {
-            path.keys.map(_.movie).toSet
+            path.values.filter(_.isDefined).map(_.get.movie).toSet
         }
 
         def update_dist(u: Screening, v: Screening) : Unit = {
-            val weight : Int = if(moviesInPath(pred.toMap).contains(v.movie)) 1 else 0
+            val weight : Int = if(moviesInPath(pred.toMap).contains(v.movie)) 0 else 1
             val alternative = distance(u) - weight  //distance between two screenings is always 1 in this implementation
             if (alternative < distance(v)) {
                 distance(v) = alternative
@@ -95,7 +95,7 @@ class ScreeningGraph (screenings: List[Screening]) {
         while (Q.nonEmpty) {
             val u = distance.filter(e => Q.contains(e._1)).toList.minBy(_._2)._1
             Q.remove(u) //TODO: possible speedup: stop here when end is reached!
-            for(v <- graph.get(u).outNeighbors if Q.contains(v)) {
+            for(v <- graph.get(u).neighbors if Q.contains(v)) {
                 update_dist(u, v)
             }
         }
@@ -107,6 +107,8 @@ class ScreeningGraph (screenings: List[Screening]) {
             path += u
             u = pred(u).get
         }
+
+        println("Shortest Path has length " + distance(endNode))
 
         path.tail.reverse.toList
     }
